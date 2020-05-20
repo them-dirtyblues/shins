@@ -1,0 +1,673 @@
+openapi: 3.0.0
+info:
+  title: Alpha5 Documentation
+  version: 1.0.0
+  description: "Rest api spec"
+
+servers:
+- description: test server
+  url: https://testing-api.alpha5.com/v1
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+- bearerAuth: []
+
+tags:
+
+paths:
+  /public/get_assets:
+    get:
+      summary: Retrieves all live assets.
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/public/get_assets.response.json
+              schema:
+                $ref: '#/components/schemas/ArrayAsset'
+      tags:
+      - public
+      - market_data
+  /public/get_live_contracts:
+    get:
+      parameters:
+      - name: asset
+        description: The asset symbol
+        explode: true
+        in: query
+        required: false
+        schema:
+          type: string
+        style: form
+      - name: type
+        description: Contrat type
+        explode: true
+        in: query
+        required: false
+        schema:
+          description: Contract type, `"future"` or `"option"`
+          type: string
+        style: form
+      - name: expired
+        description: Set to true to show expired instruments instead of active ones.
+        explode: true
+        in: query
+        required: false
+        schema:
+          default: false
+          type: boolean
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/public/get_instruments.response.json
+              schema:
+                $ref: '#/components/schemas/ArrayAsset'
+      summary: Gets all available trading contracts.
+      tags:
+      - public
+      - market_data
+  /public/ticker:
+    get:
+      parameters:
+      - name: contract_symbol
+        description: Contract symbol
+        explode: true
+        in: query
+        required: true
+        schema:
+          description: Unique contract identifier
+          example: BTC-PERPETUAL
+          type: string
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/public/ticker.response.json
+              schema:
+                $ref: '#/components/schemas/Ticker'
+      summary: Get ticker for an instrument.
+      tags:
+      - public
+      - market_data
+  /public/order_book:
+    get:
+      parameters:
+      - name: contract_symbol
+        description: contract unique identifier
+        explode: true
+        in: query
+        required: true
+        schema:
+          type: string
+        style: form
+      - name: depth
+        description: The number of entries to return for bids and asks.
+        explode: true
+        in: query
+        required: false
+        schema:
+          type: number
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/public/get_order_book.response.json
+              schema:
+                $ref: '#/components/schemas/OrderBook'
+      summary: Retrieves the order book
+      tags:
+      - market_data
+      - public
+  /public/recent_trades:
+    get:
+      parameters:
+      - name: asset
+        description: The asset symbol
+        explode: true
+        in: query
+        required: true
+        style: form
+      - name: count 
+        description: Number of requested items, default - `10`
+        explode: true
+        in: query
+        required: false
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/public/get_last_trades_by_currency.response.json
+              schema:
+
+      summary: Retrieves latest trades for an intrument
+      tags:
+      - market_data
+      - public
+  /account/place_order:
+    post:
+      parameters:
+      - name: contract_symbol
+        description: Contract unique symbol
+        explode: true
+        in: query
+        required: true
+        style: form
+      - name: size
+        description: contract size
+        explode: true
+        in: query
+        required: true
+        schema:
+          type: number
+        style: form
+      - name: type
+        description: 'The order type, default: `"limit"`'
+        explode: true
+        in: query        
+        required: false
+        schema:
+          enum:
+          - limit
+          - stop_limit
+          - market
+          - stop_market
+          type: string
+        style: form
+      - name: price
+        description: 'price'
+        explode: true
+        in: query
+        required: false
+        schema:
+          type: number
+        style: form
+      - name: time_in_force
+        description: Applies to limit order. Defaults to gtc(good till cancelled)
+        explode: true
+        in: query
+        required: false
+        schema:
+          default: good_til_cancelled
+          enum:
+          - good_til_cancelled
+          - fill_or_kill
+          - immediate_or_cancel
+          type: string
+        style: form
+      - name: post_only
+        description: <p>If true, the order is considered post-only. If the new price
+          would cause the order to be filled immediately (as taker), the price will
+          be changed to be just below the bid.</p> <p>Only valid in combination with
+          time_in_force=`"good_til_cancelled"`</p>
+        explode: true
+        in: query
+        required: false
+        schema:
+          default: true
+          type: boolean
+        style: form
+      - name: reduce_only
+        description: If `true`, the order is considered reduce-only which is intended
+          to only reduce a current position
+        explode: true
+        in: query
+        required: false
+        schema:
+          default: false
+          type: boolean
+        style: form
+      - name: stop_price
+        description: Stop price, required for stop limit orders (Only for stop orders)
+        explode: true
+        in: query
+        required: false
+        style: form
+      - name: trigger
+        description: Defines trigger type, required for `"stop_limit"` order type
+        explode: true
+        in: query
+        required: false
+        schema:
+          description: 'Trigger type (Only for stop orders). Allowed values: `"index_price"`,
+            `"mark_price"`, `"last_price"`.'
+          enum:
+          - index_price
+          - mark_price
+          - last_price
+          type: string
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/account/place_order.response.json
+              schema:
+                $ref: '#/components/schemas/Order'
+      summary: Places an order for a contract.
+      tags:
+      - account
+      - trading
+  /account/get_open_orders:
+    get:
+      parameters:
+      - name: asset
+        description: The asset symbol
+        explode: true
+        in: query
+        required: true
+        style: form
+      - name: contract_symbol
+        description: Contract unique symbol
+        explode: true
+        in: query
+        required: true
+        schema:
+          description: Unique instrument identifier
+          example: BTC-PERPETUAL
+          type: string
+        style: form
+      - name: contract_type
+        description: Contract types
+        explode: true
+        in: query
+        required: false
+        schema:
+          description: Contract type, `"future"` or `"option"`
+          enum:
+          - future
+          - spread
+          type: string
+        style: form
+      - name: type
+        description: Order type, default - `all`
+        explode: true
+        in: query
+        required: false
+        schema:
+          description: Order type, `"all"`, `"limit"`, `"stop_all"`, `"stop_limit"`
+            or `"stop_market"`
+          enum:
+          - all
+          - limit
+          - stop_all
+          - stop_limit
+          - stop_market
+          type: string
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/private/get_open_orders.response.json
+              schema:
+                $ref: '#/components/schemas/Order'
+      summary: Retrieves list of user's open orders.
+      tags:
+      - trading
+      - account
+  /account/cancel_all_open_orders:
+    get:
+      parameters:
+      - name: asset
+        description: The asset symbol
+        explode: true
+        in: query
+        required: true
+        style: form
+      - name: contract_symbol
+        description: Contract unique symbol
+        explode: true
+        in: query
+        required: true
+        style: form
+      - name: contract_type
+        description: Contract types
+        explode: true
+        in: query
+        required: false
+        schema:
+          description: Contract type, `"future"` or `"option"`
+          enum:
+          - future
+          - spread
+          type: string
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/private/cancel_all_by_currency.response.json
+              schema:
+                $ref: '#/components/schemas/CancelAllOrders'
+      summary: Cancel all orders by the param
+      tags:
+      - account
+      - trading
+  /account/cancel_order:
+    get:
+      parameters:
+      - name: order_id
+        description: The order id
+        explode: true
+        in: query
+        required: true
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/private/cancel.response.json
+              schema:
+                $ref: '#/components/schemas/CancelOrder'
+      summary: Cancel an order, specified by order id
+      tags:
+      - trading
+      - account
+  /account/get_positions:
+    get:
+      parameters:
+      - name: asset
+        description: The asset symbol
+        explode: true
+        in: query
+        required: true
+        style: form
+      - name: contract_symbol
+        description: Contract unique symbol
+        explode: true
+        in: query
+        required: true
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/private/get_positions.response.json
+              schema:
+                $ref: '#/components/schemas/Position'
+          description: Returns open positions
+      summary: Retrieve user positions.
+      tags:
+      - account
+      - account_management
+  /account/close_position:
+    get:
+      parameters:
+      - name: order_id
+        description: The order id
+        explode: true
+        in: query
+        required: true
+        style: form
+      - name: price
+        description: Optional price for limit order.
+        explode: true
+        in: query
+        required: false
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/private/close_position.response.json
+              schema:
+                $ref: '#/components/schemas/Position'
+      summary: Close an open position
+      tags:
+      - account
+      - trading
+  /account/get_user_trades:
+    get:
+      parameters:
+      - description: The order id
+        explode: true
+        in: query
+        name: order_id
+        required: false
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/private/get_user_trades_by_order.response.json
+              schema:
+                $ref: '#/components/schemas/ArrayTrades'
+      summary: Retrieve the list of user trades. Pagination supported.
+      tags:
+      - trading
+      - private
+  /account/get_deposit_address:
+    get:
+      parameters:
+      - name: asset
+        description: The asset symbol
+        explode: true
+        in: query
+        required: true
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+      summary: Retrieves deposit addresses
+      tags:
+      - wallet
+      - account
+  /account/edit_order:
+    get:
+      parameters:
+      - name: order_id
+        description: The order id
+        explode: true
+        in: query
+        required: true
+        style: form
+      - name: size
+        description: It represents the requested order size. For perpetual and futures
+          the amount is in USD units, for options it is amount of corresponding cryptocurrency
+          contracts, e.g., BTC or ETH
+        explode: true
+        in: query
+        required: false
+        style: form
+      - name: price
+        description: The order price in base currency.
+        explode: true
+        in: query
+        required: false
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/private/edit.response.json
+              schema:
+                $ref: '#/components/schemas/Order'
+      summary: Change price, size and/or other properties of an order.
+      tags:
+      - trading
+      - account
+  /account/get_order_history:
+    get:
+      parameters:
+      - name: asset
+        description: The asset symbol
+        explode: true
+        in: query
+        required: true
+        style: form
+      - name: contract_type
+        description: Contract types
+        explode: true
+        in: query
+        required: false
+        schema:
+          description: Contract type, `"future"` or `"option"`
+          enum:
+          - future
+          - spread
+          type: string
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/private/get_order_history.response.json
+              schema:
+                $ref: '#/components/schemas/ArrayOrder'
+      summary: Retrieves history of orders that have been partially or fully filled.
+      tags:
+      - trading
+      - private
+  /account/get_deposits:
+    get:
+      parameters:
+      - name: asset
+        description: The asset symbol
+        explode: true
+        in: query
+        required: true
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/private/get_deposits.response.json
+              schema:
+                $ref: '#/components/schemas/ArrayDeposit'
+      summary: Retrieve the latest users deposits
+      tags:
+      - wallet
+      - account
+  /account/wallet_balances:
+    get:
+      parameters:
+      - name: asset
+        description: The asset symbol
+        explode: true
+        in: query
+        required: false
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/private/get_deposits.response.json
+              schema:
+                $ref: '#/components/schemas/Wallet'
+      summary: Retrieves wallets and balances
+      tags:
+      - wallet
+      - private
+  /acccount/get_withdrawals:
+    get:
+      parameters:
+      - name: asset
+        description: The asset symbol
+        explode: true
+        in: query
+        required: false
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/private/get_withdrawals.response.json
+              schema:
+                $ref: '#/components/schemas/ArrayWithdrawal'
+      summary: Retrieve the latest users withdrawals
+      tags:
+      - wallet
+      - private
+  /account/withdraw:
+    post:
+      parameters:
+      - name: asset
+        description: The asset symbol
+        explode: true
+        in: query
+        required: false
+        style: form
+      - name: address
+        description: Address in currency format, it must be in address book
+        explode: true
+        in: query        
+        required: true
+        style: form
+      - name: amount
+        description: Amount of funds to be withdrawn
+        explode: true
+        in: query        
+        required: true
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              examples:
+                jsonObject:
+                  externalValue: examples/private/withdraw.response.json
+              schema:
+                $ref: '#/components/schemas/Withdrawal'
+      summary: Creates a new withdrawal request
+      tags:
+      - wallet
+      - account
+
+  
+
+components:
+  schemas:
+    Asset:
+      allOf:
+      - type: object
+        properties:
+          api_status:
+            $ref: '#/components/schemas/GetApiResponse_api_status'
