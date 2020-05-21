@@ -666,8 +666,15 @@ paths:
 components:
   schemas:
     Asset:
-      allOf:
-      - type: object
-        properties:
-          api_status:
-            $ref: '#/components/schemas/GetApiResponse_api_status'
+      type: object
+      properties:
+        symbol:
+          description: Unique asset identifier
+          example: ETH
+          type: string
+        name:
+          example: Ethereum
+          type: string
+        precision:
+          example: 8
+          type: number
