@@ -73,7 +73,7 @@ paths:
                 jsonObject:
                   externalValue: examples/public/get_instruments.response.json
               schema:
-                $ref: '#/components/schemas/ArrayAsset'
+                $ref: '#/components/schemas/ArrayContract'
       summary: Gets all available trading contracts.
       tags:
       - public
@@ -159,7 +159,7 @@ paths:
                 jsonObject:
                   externalValue: examples/public/get_last_trades_by_currency.response.json
               schema:
-
+                $ref: '#/components/schemas/RecentTrade'
       summary: Retrieves latest trades for an intrument
       tags:
       - market_data
@@ -325,7 +325,7 @@ paths:
                 jsonObject:
                   externalValue: examples/private/get_open_orders.response.json
               schema:
-                $ref: '#/components/schemas/Order'
+                $ref: '#/components/schemas/ArrayOrder'
       summary: Retrieves list of user's open orders.
       tags:
       - trading
@@ -365,7 +365,7 @@ paths:
                 jsonObject:
                   externalValue: examples/private/cancel_all_by_currency.response.json
               schema:
-                $ref: '#/components/schemas/CancelAllOrders'
+                $ref: '#/components/schemas/CancelOrder'
       summary: Cancel all orders by the param
       tags:
       - account
