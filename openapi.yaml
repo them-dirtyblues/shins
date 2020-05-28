@@ -729,3 +729,62 @@ components:
           type: object
           example: 'ETH'
           $ref: '#/components/schemas/Asset'
+    ArraycContract:
+      type: array
+      items:
+        $ref: '#/components/schemas/Contract'
+    Order:
+      type: object
+      properties:
+        uuid:
+          description: Unique order identifier
+          example: ALPHA-880-178
+          type: string
+        user_id:
+          type: string
+          description: User unique identifier
+          type: string
+        order_type:
+          type: string
+          example: limit
+          enum:
+          - limit
+          - market
+          - stop_limit
+          - stop_market
+          - spread
+        side:
+          type: string
+          example: buy/long
+          enum:
+          - buy
+          - sell
+        state: 
+          type: string
+          example: open
+          enum:
+          - open
+          - filled
+          - cancelled
+          - closed
+        size:
+          type: number
+          example: 100
+          description: 'Number of contracts'
+        placed_at_price:
+          type: number
+          example: 10000
+        average_executed_at_price:
+          type: number
+          example: 10005
+        commission_paid:
+          type: number
+          example: 0.001
+        time_in_force:
+          type: string
+          enum:
+          - gtc
+          - fok
+          - ioc
+        contract_id:
+          type: string
