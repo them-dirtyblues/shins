@@ -678,3 +678,54 @@ components:
         precision:
           example: 8
           type: number
+    ArrayAsset:
+      type: array
+      items:
+        $ref: '#/components/schemas/Asset'
+    Contract:
+      type: object
+      properties:
+        symbol:
+          description: Unique contract identifier
+          example: ETHM
+          type: string
+        name:
+          example: Ethereum-June
+          type: string
+        contract_type:
+          example: 'futures'
+          type: string
+          enum:
+          - Futures
+          - Perpetual_future
+          - Spread_contract
+        settle_at:
+          type: string
+        launch_at:
+          type: string
+        tick_size:
+          type: number
+          example: 0.5
+        status:
+          type: string
+          example: 'live'
+          enum:
+          - live
+          - expired
+        initial_margin:
+          type: number
+          example: 0.5
+        maintainance_margin:
+          type: number
+          example: 0.5
+        maximum_position_limit:
+          type: number
+          example: 100000
+        quoting_asset:
+          type: object
+          example: 'BTC'
+          $ref: '#/components/schemas/Asset'
+        settling_asset:
+          type: object
+          example: 'ETH'
+          $ref: '#/components/schemas/Asset'
