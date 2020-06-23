@@ -9,12 +9,16 @@ servers:
     url: https://testing-api.alpha5.com/v1
 
 security:
+  - SignatureHeader: []
+    TimestampHeader: []
+    ApiKeyHeader: []
   - BearerAuth: []
 
 paths:
   /public/get_assets:
     get:
-      summary: Retrieves all available assets
+      security: []
+      summary: Get assets
       responses:
         "200":
           description: Success
@@ -24,10 +28,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Asset"
+
       tags:
-        - public
+        - Public
   /public/get_live_contracts:
     get:
+      security: []
       parameters:
         - name: asset
           description: The asset symbol
@@ -45,15 +51,15 @@ paths:
           schema:
             $ref: "#/components/schemas/ContractType"
           style: form
-        - name: expired
-          description: Set to true to show expired instruments instead of active ones.
-          explode: true
-          in: query
-          required: false
-          schema:
-            default: false
-            type: boolean
-          style: form
+        # - name: expired
+        #   description: Set to true to show expired instruments instead of active ones.
+        #   explode: true
+        #   in: query
+        #   required: false
+        #   schema:
+        #     default: false
+        #     type: boolean
+        #   style: form
       responses:
         200:
           description: Success
@@ -63,11 +69,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Contract"
-      summary: Gets all available trading contracts.
+      summary: Get contracts
       tags:
-        - public
+        - Public
   /public/ticker:
     get:
+      security: []
       parameters:
         - name: contract_symbol
           description: Contract symbol
@@ -84,11 +91,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Ticker"
-      summary: Get ticker for an instrument.
+      summary: Get ticker
       tags:
-        - public
+        - Public
   /public/order_book:
     get:
+      security: []
       parameters:
         - name: contract_symbol
           description: Symbol of contract
@@ -113,11 +121,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Orderbook"
-      summary: Retrieves the order book
+      summary: L2 Orderbook
       tags:
-        - public
+        - Public
   /public/recent_trades:
     get:
+      security: []
       parameters:
         - name: asset
           description: The asset symbol
@@ -144,9 +153,9 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/RecentTrade"
-      summary: Retrieves latest trades for an intrument
+      summary: Rcent Trades
       tags:
-        - public
+        - Public
   /account/place_order:
     post:
       requestBody:
@@ -164,7 +173,6 @@ paths:
                 type:
                   anyOf:
                     - $ref: "#/components/schemas/OrderType"
-                    - $ref: "#/components/schemas/StopOrderType"
                   type: string
                   example: "limit"
                   default: "limit"
@@ -208,9 +216,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Order"
-      summary: Places an order for a contract.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+      summary: Place Order
       tags:
-        - trading
+        - Trading
   /account/edit_order:
     post:
       requestBody:
@@ -239,9 +253,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Order"
-      summary: Cancel remaining size of the order and place a new one
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+      summary: Replace order
       tags:
-        - trading
+        - Trading
   /account/get_open_orders:
     get:
       parameters:
@@ -290,32 +310,9 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Order"
-      summary: Retrieves list of user's open orders.
+      summary: Get open orders
       tags:
-        - trading
-  /account/cancel_all_open_orders:
-    post:
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                asset:
-                  allOf:
-                    - $ref: "#/components/schemas/AssetSymbol"
-                contract_symbol:
-                  allOf:
-                    - $ref: "#/components/schemas/ContractSymbol"
-                contract_type:
-                  allOf:
-                    - $ref: "#/components/schemas/ContractType"
-      responses:
-        "200":
-          description: A cancellation response
-      summary: Cancel all orders by the param
-      tags:
-        - trading
+        - Trading
   /account/cancel_order:
     post:
       requestBody:
@@ -336,9 +333,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Order"
-      summary: Cancel an order, specified by order id
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+      summary: Cancel order
       tags:
-        - trading
+        - Trading
+  /account/cancel_all_open_orders:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                asset:
+                  allOf:
+                    - $ref: "#/components/schemas/AssetSymbol"
+                contract_symbol:
+                  allOf:
+                    - $ref: "#/components/schemas/ContractSymbol"
+                contract_type:
+                  allOf:
+                    - $ref: "#/components/schemas/ContractType"
+      responses:
+        "200":
+          description: A cancellation response
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+      summary: Cancel all open orders
+      tags:
+        - Trading
   /account/get_positions:
     get:
       parameters:
@@ -367,9 +395,9 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Position"
-      summary: Retrieve user positions.
+      summary: Get positions
       tags:
-        - trading
+        - Trading
   /account/close_position:
     post:
       requestBody:
@@ -393,9 +421,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Position"
-      summary: Close an open position
+      summary: Close position
       tags:
-        - trading
+        - Trading
   /account/get_user_trades:
     get:
       parameters:
@@ -416,7 +444,7 @@ paths:
           #   $ref: "#/components/schemas/ArrayTrades"
       summary: Retrieve the list of user trades. Pagination supported.
       tags:
-        - trading
+        - Trading
   /account/get_order_history:
     get:
       parameters:
@@ -455,9 +483,9 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Order"
-      summary: Retrieves history of orders that have been partially or fully filled.
+      summary: Order history
       tags:
-        - trading
+        - Trading
   # /account/get_deposit_address:
   #   get:
   #     parameters:
@@ -635,21 +663,40 @@ components:
       type: http
       scheme: bearer
 
+    SignatureHeader:
+      type: apiKey
+      in: header
+      name: signature
+
+    TimestampHeader:
+      type: apiKey
+      in: header
+      name: timestamp
+
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: api-key
+
   schemas:
+    Timestamp:
+      type: number
+      example: 1592828815073
+      description: "Unix millisecond timestamp"
+
     UUID:
       type: string
       example: d25c9454-b488-11ea-b3de-0242ac130004
       description: Unique identifier
 
     Decimal:
-      oneOf:
-        - type: number
-        - type: string
+      type: string
       example: "10.000"
+      description: "Decimal number represented as string"
 
     DateTime:
       type: string
-      format: date-time
+      example: "2020-06-22T18:17:58Z"
 
     AssetSymbol:
       type: string
@@ -668,6 +715,9 @@ components:
 
     Side:
       type: string
+      x-enumNames:
+        - buy
+        - sell
       enum:
         - buy
         - sell
@@ -756,6 +806,11 @@ components:
         precision:
           example: 8
           type: number
+
+    AssetList:
+      type: array
+      items:
+        $ref: "#/components/schemas/Asset"
 
     Contract:
       type: object
@@ -923,4 +978,68 @@ components:
         #     - ioc
         # contract_id:
         #   type: string
+
+  responses:
+    NotFound:
+      description: Resource could not be found
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - type
+            properties:
+              status:
+                type: string
+                enum: [error]
+              type:
+                type: string
+                enum: [not_found]
+    Unauthorized:
+      description: Request could not be authorized
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - type
+            properties:
+              status:
+                type: string
+                enum: [error]
+              type:
+                type: string
+                enum: [unauthorized]
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - type
+            properties:
+              status:
+                type: string
+                enum: [error]
+              type:
+                enum: [invalid_data]
+    UnprocessableEntity:
+      description: Unprocessable entity
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - type
+            properties:
+              status:
+                type: string
+                enum: [error]
+              type:
+                type: string
+                enum: [rejected]
+              reason:
+                type: string
+                description: Error explanation
 
