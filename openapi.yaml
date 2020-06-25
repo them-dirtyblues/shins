@@ -6,7 +6,7 @@ info:
 
 servers:
   - description: test server
-    url: https://testing-api.alpha5.com/v1
+    url: https://uat.alpha5.io/api/v1
 
 security:
   - SignatureHeader: []
@@ -25,9 +25,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Asset"
+                $ref: "#/components/schemas/AssetList"
 
       tags:
         - Public
@@ -51,15 +49,6 @@ paths:
           schema:
             $ref: "#/components/schemas/ContractType"
           style: form
-        # - name: expired
-        #   description: Set to true to show expired instruments instead of active ones.
-        #   explode: true
-        #   in: query
-        #   required: false
-        #   schema:
-        #     default: false
-        #     type: boolean
-        #   style: form
       responses:
         200:
           description: Success
@@ -107,12 +96,12 @@ paths:
             $ref: "#/components/schemas/ContractSymbol"
           style: form
         - name: depth
-          description: The number of entries to return for buy and sell side
-          explode: true
           in: query
+          description: The number of entries to return for buy and sell side
           required: false
+          explode: true
           schema:
-            type: number
+            $ref: "#/components/schemas/Depth"
           style: form
       responses:
         200:
@@ -128,14 +117,14 @@ paths:
     get:
       security: []
       parameters:
-        - name: asset
-          description: The asset symbol
+        - name: contract_symbol
+          description: Symbol of contract
           explode: true
           in: query
           required: true
-          style: form
           schema:
-            type: string
+            $ref: "#/components/schemas/ContractSymbol"
+          style: form
         - name: count
           description: Number of requested items, default - `10`
           explode: true
@@ -153,7 +142,7 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/RecentTrade"
-      summary: Rcent Trades
+      summary: Recent Trades
       tags:
         - Public
   /account/place_order:
@@ -166,10 +155,14 @@ paths:
               required:
                 - contract_symbol
                 - size
+                - side
               properties:
                 contract_symbol:
                   allOf:
                     - $ref: "#/components/schemas/ContractSymbol"
+                side:
+                  allOf:
+                    - $ref: "#/components/schemas/Side"
                 type:
                   anyOf:
                     - $ref: "#/components/schemas/OrderType"
@@ -266,7 +259,7 @@ paths:
     get:
       parameters:
         - name: asset
-          description: The asset symbol
+          description: The asset symbol, exactly one of `asset` or `contract_symbol`
           explode: true
           in: query
           required: false
@@ -275,7 +268,7 @@ paths:
             allOf:
               - $ref: "#/components/schemas/AssetSymbol"
         - name: contract_symbol
-          description: Contract unique symbol
+          description: Contract unique symbol, exactly one of `asset` or `contract_symbol`
           explode: true
           in: query
           required: true
@@ -291,6 +284,15 @@ paths:
           schema:
             allOf:
               - $ref: "#/components/schemas/ContractType"
+          style: form
+        - name: order_type
+          description: Order types
+          explode: true
+          in: query
+          required: false
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/OrderType"
           style: form
         - $ref: "#/components/parameters/pageSizeParam"
         - $ref: "#/components/parameters/currentPageParam"
@@ -349,11 +351,15 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - contract_symbol
               properties:
                 asset:
+                  description: The asset symbol, exactly one of `asset` or `contract_symbol`
                   allOf:
                     - $ref: "#/components/schemas/AssetSymbol"
                 contract_symbol:
+                  description: Contract unique symbol, exactly one of `asset` or `contract_symbol`
                   allOf:
                     - $ref: "#/components/schemas/ContractSymbol"
                 contract_type:
@@ -371,21 +377,23 @@ paths:
     get:
       parameters:
         - name: asset
-          description: The asset symbol
+          description: The asset symbol, exactly one of `asset` or `contract_symbol`
           explode: true
           in: query
-          required: true
+          required: false
           style: form
           schema:
-            type: string
+            allOf:
+              - $ref: "#/components/schemas/AssetSymbol"
         - name: contract_symbol
-          description: Contract unique symbol
+          description: Contract unique symbol, exactly one of `asset` or `contract_symbol`
           explode: true
           in: query
           required: true
-          style: form
           schema:
-            type: string
+            allOf:
+              - $ref: "#/components/schemas/ContractSymbol"
+          style: form
       responses:
         "200":
           description: A list of positions
@@ -435,27 +443,31 @@ paths:
           style: form
           schema:
             $ref: "#/components/schemas/UUID"
+        - $ref: "#/components/parameters/pageSizeParam"
+        - $ref: "#/components/parameters/currentPageParam"
       responses:
         "200":
           description: A list of trades
-          # content:
-          #   application/json:
-          # schema:
-          #   $ref: "#/components/schemas/ArrayTrades"
-      summary: Retrieve the list of user trades. Pagination supported.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserTrade"
+      summary: Get user trades
       tags:
         - Trading
   /account/get_order_history:
     get:
       parameters:
-        - name: asset
-          description: The asset symbol
+        - name: contract_symbol
+          description: Contract symbol
           explode: true
           in: query
           required: true
-          style: form
           schema:
-            type: string
+            $ref: "#/components/schemas/ContractSymbol"
+          style: form
         - name: contract_type
           description: Contract types
           explode: true
@@ -486,140 +498,6 @@ paths:
       summary: Order history
       tags:
         - Trading
-  # /account/get_deposit_address:
-  #   get:
-  #     parameters:
-  #       - name: asset
-  #         description: The asset symbol
-  #         explode: true
-  #         in: query
-  #         required: true
-  #         style: form
-  #         schema:
-  #           type: string
-  #     responses:
-  #       "200":
-  #         description: A deposit address
-  #         # content:
-  #         #   application/json:
-  #         #     schema:
-  #         #       $ref: "#/components/schemas/Address"
-  #     summary: Retrieves deposit addresses
-  #     tags:
-  #       - wallet
-  # /account/get_deposits:
-  #   get:
-  #     parameters:
-  #       - name: asset
-  #         description: The asset symbol
-  #         explode: true
-  #         in: query
-  #         required: true
-  #         style: form
-  #         schema:
-  #           type: string
-  #     responses:
-  #       "200":
-  #         description: A list of deposits
-  #         content:
-  #           application/json:
-  #             examples:
-  #               jsonObject:
-  #                 externalValue: examples/private/get_deposits.response.json
-  #             # schema:
-  #             #   $ref: "#/components/schemas/ArrayDeposit"
-  #     summary: Retrieve the latest users deposits
-  #     tags:
-  #       - wallet
-  # /account/wallet_balances:
-  #   get:
-  #     parameters:
-  #       - name: asset
-  #         description: The asset symbol
-  #         explode: true
-  #         in: query
-  #         required: false
-  #         style: form
-  #         schema:
-  #           type: string
-  #     responses:
-  #       "200":
-  #         description: A list of wallets
-  #         content:
-  #           application/json:
-  #             examples:
-  #               jsonObject:
-  #                 externalValue: examples/private/get_deposits.response.json
-  #             # schema:
-  #             #   $ref: "#/components/schemas/Wallet"
-  #     summary: Retrieves wallets and balances
-  #     tags:
-  #       - wallet
-  # /acccount/get_withdrawals:
-  #   get:
-  #     parameters:
-  #       - name: asset
-  #         description: The asset symbol
-  #         explode: true
-  #         in: query
-  #         required: false
-  #         style: form
-  #         schema:
-  #           type: string
-  #     responses:
-  #       "200":
-  #         description: A list of withdrawals
-  #         content:
-  #           application/json:
-  #             examples:
-  #               jsonObject:
-  #                 externalValue: examples/private/get_withdrawals.response.json
-  #             # schema:
-  #             #   $ref: "#/components/schemas/ArrayWithdrawal"
-  #     summary: Retrieve the latest users withdrawals
-  #     tags:
-  #       - wallet
-  # /account/withdraw:
-  #   post:
-  #     parameters:
-  #       - name: asset
-  #         description: The asset symbol
-  #         explode: true
-  #         in: query
-  #         required: false
-  #         style: form
-  #         schema:
-  #           type: string
-  #       - name: address
-  #         description: Address in currency format, it must be in address book
-  #         explode: true
-  #         in: query
-  #         required: true
-  #         style: form
-  #         schema:
-  #           type: string
-  #       - name: amount
-  #         description: Amount of funds to be withdrawn
-  #         explode: true
-  #         in: query
-  #         required: true
-  #         style: form
-  #         schema:
-  #           type: string
-  #     responses:
-  #       "200":
-  #         description: Withdraw response
-  #         content:
-  #           application/json:
-  #             examples:
-  #               jsonObject:
-  #                 externalValue: examples/private/withdraw.response.json
-  #             # schema:
-  #             #   $ref: "#/components/schemas/Withdrawal"
-  #     summary: Creates a new withdrawal request
-  #     tags:
-  #       - wallet
-
 components:
   headers:
     X-Pagination-Current-Page:
@@ -679,6 +557,13 @@ components:
       name: api-key
 
   schemas:
+    Depth:
+      type: number
+      minimum: 1
+      maximum: 100
+      example: 20
+      description: The number of entries to return for buy and sell side, in - `1..100`
+
     Timestamp:
       type: number
       example: 1592828815073
@@ -723,6 +608,17 @@ components:
         - sell
       description: Side
       example: buy
+
+    TradeRole:
+      type: string
+      x-enumNames:
+        - maker
+        - taker
+      enum:
+        - maker
+        - taker
+      description: TradeRole
+      example: maker
 
     ContractType:
       type: string
@@ -817,20 +713,16 @@ components:
       properties:
         symbol:
           $ref: "#/components/schemas/ContractSymbol"
-        name:
+        description:
           example: BTC-June
           type: string
-        contract_type:
+        type:
           $ref: "#/components/schemas/ContractType"
-        settle_at:
-          type: string
-          format: date-time
-          description: Settle time
-        launch_at:
-          allOf:
-            - $ref: "#/components/schemas/DateTime"
-          description: Launch time
         tick_size:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "0.5"
+        impact_size:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           example: "0.5"
@@ -844,14 +736,21 @@ components:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           example: "0.02"
-        maximum_position_limit:
+        position_size_limit:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           example: 1000
+        settlement_time:
+          type: string
+          format: date-time
+          description: Settle time
+        underlying_asset:
+          $ref: "#/components/schemas/Asset"
         quoting_asset:
           $ref: "#/components/schemas/Asset"
         settling_asset:
           $ref: "#/components/schemas/Asset"
+
     Ticker:
       type: object
       properties:
@@ -867,6 +766,9 @@ components:
         close:
           allOf:
             - $ref: "#/components/schemas/Decimal"
+        size:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
         timestamp:
           type: number
           description: Trade timestamp
@@ -875,8 +777,8 @@ components:
       type: object
       properties:
         depth:
-          type: integer
-          example: 20
+          allOf:
+            - $ref: "#/components/schemas/Depth"
         buy:
           type: array
           items:
@@ -904,20 +806,51 @@ components:
           type: number
           description: Trade timestamp
           example: 1592828815073
-    Position:
+    UserTrade:
       type: object
       properties:
         side:
           allOf:
             - $ref: "#/components/schemas/Side"
           description: Side of trade
+        role:
+          allOf:
+            - $ref: "#/components/schemas/TradeRole"
+          description: Role of trade
         price:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           description: Price of trade
-        contract_id:
+        size:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Size of trade
+        comission:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Comission of trade
+        order_id:
           allOf:
             - $ref: "#/components/schemas/UUID"
+          description: Unique order identifier
+    Position:
+      type: object
+      properties:
+        price:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Position entry price
+        size:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Position size, negative for short and positive for long
+        margin:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Position margin
+        contract:
+          allOf:
+            - $ref: "#/components/schemas/Contract"
     Order:
       type: object
       properties:
@@ -960,24 +893,9 @@ components:
         contract:
           type: object
           properties:
-            id:
-              type: string
-              description: Unique contract identifier
-              example: d25c9454-b488-11ea-b3de-0242ac130004
             symbol:
               allOf:
                 - $ref: "#/components/schemas/ContractSymbol"
-        # commission_paid:
-        #   type: number
-        #   example: 0.001
-        # time_in_force:
-        #   type: string
-        #   enum:
-        #     - gtc
-        #     - fok
-        #     - ioc
-        # contract_id:
-        #   type: string
 
   responses:
     NotFound:
