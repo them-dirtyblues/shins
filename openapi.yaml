@@ -6,7 +6,7 @@ info:
 
 servers:
   - description: test server
-    url: https://uat.alpha5.io/api/v1
+    url: https://domain.com/api/v1
 
 security:
   - SignatureHeader: []
@@ -61,6 +61,51 @@ paths:
       summary: Get contracts
       tags:
         - Public
+  /public/spot_price:
+    get:
+      security: []
+      parameters:
+        - name: contract_symbol
+          description: Contract symbol
+          explode: true
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/ContractSymbol"
+          style: form
+      responses:
+        200:
+          description: A contract ticker
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpotPrice"
+      summary: Get index price
+      tags:
+        - Public
+  /public/mark_price:
+    get:
+      security: []
+      parameters:
+        - name: contract_symbol
+          description: Contract symbol
+          explode: true
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/ContractSymbol"
+          style: form
+      responses:
+        200:
+          description: A contract ticker
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarkPrice"
+      summary: Get mark price
+      tags:
+        - Public
+
   /public/ticker:
     get:
       security: []
@@ -110,7 +155,55 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Orderbook"
-      summary: L2 Orderbook
+      summary: Orderbook
+      tags:
+        - Public
+  /public/get_ohlc:
+    get:
+      security: []
+      parameters:
+        - name: contract_symbol
+          description: Symbol of contract
+          explode: true
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/ContractSymbol"
+          style: form
+        - name: resolution
+          in: query
+          description: The number of entries to return for buy and sell side
+          required: true
+          explode: true
+          schema:
+            $ref: "#/components/schemas/Resolution"
+          style: form
+        - name: from
+          in: query
+          description: The number of entries to return for buy and sell side
+          required: true
+          explode: true
+          schema:
+            type: integer
+            example: 1593185692
+          style: form
+        - name: to
+          in: query
+          description: The number of entries to return for buy and sell side
+          required: true
+          explode: true
+          schema:
+            type: integer
+            example: 1593185692
+          style: form
+      responses:
+        200:
+          description: OHLC data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ohlc"
+      summary: OHLC data
       tags:
         - Public
   /public/recent_trades:
@@ -218,6 +311,93 @@ paths:
       summary: Place Order
       tags:
         - Trading
+  /account/place_batch_orders:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - batch_orders
+              properties:
+                batch_orders:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - contract_symbol
+                      - size
+                      - side
+                    properties:
+                      contract_symbol:
+                        allOf:
+                          - $ref: "#/components/schemas/ContractSymbol"
+                      side:
+                        allOf:
+                          - $ref: "#/components/schemas/Side"
+                      type:
+                        anyOf:
+                          - $ref: "#/components/schemas/OrderType"
+                        type: string
+                        example: "limit"
+                        default: "limit"
+                      size:
+                        allOf:
+                          - $ref: "#/components/schemas/Decimal"
+                        example: "2.3"
+                      price:
+                        allOf:
+                          - $ref: "#/components/schemas/Decimal"
+                        example: "9412.22"
+                      stop_price:
+                        allOf:
+                          - $ref: "#/components/schemas/Decimal"
+                        example: "9522.12"
+                      time_in_force:
+                        allOf:
+                          - $ref: "#/components/schemas/TimeInForce"
+                      post_only:
+                        type: boolean
+                        default: false
+                        description:
+                          <p>If true, the order is considered post-only. If the new price
+                          would cause the order to be filled immediately (as taker), the price will
+                          be changed to be just below the bid.</p> <p>Only valid in combination with
+                          time_in_force=`"good_til_cancelled"`</p>
+                      reduce_only:
+                        type: boolean
+                        default: false
+                        description:
+                          If `true`, the order is considered reduce-only which is intended
+                          to only reduce a current position
+                      trigger:
+                        allOf:
+                          - $ref: "#/components/schemas/StopOrderTrigger"
+                        description: Trigger type (Only for stop orders)
+
+
+
+      responses:
+        "200":
+          description: Place batch orders for a contract.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref:   "#/components/schemas/Order"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+      summary:  Place batch orders
+      tags:
+        - Trading
+
   /account/edit_order:
     post:
       requestBody:
@@ -344,6 +524,47 @@ paths:
       summary: Cancel order
       tags:
         - Trading
+  /account/cancel_batch_orders:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - batch_orders
+              properties:
+                batch_orders:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                        - order_id
+                    properties:
+                      order_id:
+                        allOf:
+                          - $ref: "#/components/schemas/UUID"
+
+
+      responses:
+        "200":
+          description: Cancel batch orders, specified by order ids.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref:   "#/components/schemas/Order"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+      summary:  Cancel batch orders
+      tags:
+        - Trading
   /account/cancel_all_open_orders:
     post:
       requestBody:
@@ -435,6 +656,15 @@ paths:
   /account/get_user_trades:
     get:
       parameters:
+        - name: contract_symbol
+          description: Contract unique symbol
+          explode: true
+          in: query
+          required: false
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ContractSymbol"
+          style: form
         - description: The order id
           explode: true
           in: query
@@ -557,6 +787,34 @@ components:
       name: api-key
 
   schemas:
+    Resolution:
+      type: string
+      enum:
+        - M1
+        - M2
+        - M3
+        - M5
+        - M15
+        - M30
+        - M60
+        - M90
+        - M120
+        - M240
+        - M360
+        - H1
+        - H2
+        - H3
+        - H6
+        - H24
+        - D1
+        - D7
+        - D30
+        - W1
+        - W2
+        - W4
+      description: Resolution
+      example: M1
+
     Depth:
       type: number
       minimum: 1
@@ -679,6 +937,34 @@ components:
         - immediate_or_cancel
       example: good_til_cancelled
 
+    Ohlc:
+      type: object
+      properties:
+        opens:
+          type: array
+          items:
+            $ref: "#/components/schemas/Decimal"
+        highs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Decimal"
+        lows:
+          type: array
+          items:
+            $ref: "#/components/schemas/Decimal"
+        closes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Decimal"
+        sizes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Decimal"
+        timestamps:
+          type: array
+          items:
+            type: integer
+
     PricePoint:
       type: object
       properties:
@@ -750,6 +1036,36 @@ components:
           $ref: "#/components/schemas/Asset"
         settling_asset:
           $ref: "#/components/schemas/Asset"
+
+    SpotPrice:
+      type: object
+      properties:
+        contract_id:
+          allOf:
+            - $ref: "#/components/schemas/UUID"
+        contract_symbol:
+          $ref: "#/components/schemas/ContractSymbol"
+        spot_price:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+        timestamp:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+
+    MarkPrice:
+      type: object
+      properties:
+        contract_id:
+          allOf:
+            - $ref: "#/components/schemas/UUID"
+        contract_symbol:
+          $ref: "#/components/schemas/ContractSymbol"
+        mark_price:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+        timestamp:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
 
     Ticker:
       type: object
@@ -960,4 +1276,3 @@ components:
               reason:
                 type: string
                 description: Error explanation
-
