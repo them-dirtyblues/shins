@@ -238,6 +238,7 @@ paths:
       summary: Recent Trades
       tags:
         - Public
+
   /account/place_order:
     post:
       requestBody:
@@ -277,6 +278,9 @@ paths:
                 time_in_force:
                   allOf:
                     - $ref: "#/components/schemas/TimeInForce"
+                client_order_id:
+                  allOf:
+                    - $ref: "#/components/schemas/ClientOrderId"
                 post_only:
                   type: boolean
                   default: false
@@ -291,7 +295,7 @@ paths:
                   description:
                     If `true`, the order is considered reduce-only which is intended
                     to only reduce a current position
-                trigger:
+                stop_trigger:
                   allOf:
                     - $ref: "#/components/schemas/StopOrderTrigger"
                   description: Trigger type (Only for stop orders)
@@ -311,6 +315,7 @@ paths:
       summary: Place Order
       tags:
         - Trading
+
   /account/place_batch_orders:
     post:
       requestBody:
@@ -350,13 +355,13 @@ paths:
                         allOf:
                           - $ref: "#/components/schemas/Decimal"
                         example: "9412.22"
-                      stop_price:
-                        allOf:
-                          - $ref: "#/components/schemas/Decimal"
-                        example: "9522.12"
+
                       time_in_force:
                         allOf:
                           - $ref: "#/components/schemas/TimeInForce"
+                      client_order_id:
+                        allOf:
+                          - $ref: "#/components/schemas/ClientOrderId"
                       post_only:
                         type: boolean
                         default: false
@@ -371,10 +376,14 @@ paths:
                         description:
                           If `true`, the order is considered reduce-only which is intended
                           to only reduce a current position
-                      trigger:
-                        allOf:
-                          - $ref: "#/components/schemas/StopOrderTrigger"
-                        description: Trigger type (Only for stop orders)
+                      # stop_price:
+                      #   allOf:
+                      #     - $ref: "#/components/schemas/Decimal"
+                      #   example: "9522.12"
+                      # stop_trigger:
+                      #   allOf:
+                      #     - $ref: "#/components/schemas/StopOrderTrigger"
+                      #   description: Trigger type (Only for stop orders)
 
 
 
@@ -411,6 +420,9 @@ paths:
                 order_id:
                   allOf:
                     - $ref: "#/components/schemas/UUID"
+                client_order_id:
+                  allOf:
+                    - $ref: "#/components/schemas/ClientOrderId"
                 size:
                   allOf:
                     - $ref: "#/components/schemas/Decimal"
@@ -435,23 +447,116 @@ paths:
       summary: Replace order
       tags:
         - Trading
+
+  /account/edit_batch_orders:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - batch_orders
+              properties:
+                batch_orders:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - order_id
+                    properties:
+                      order_id:
+                        allOf:
+                          - $ref: "#/components/schemas/UUID"
+                      client_order_id:
+                        allOf:
+                          - $ref: "#/components/schemas/ClientOrderId"
+                      size:
+                        allOf:
+                          - $ref: "#/components/schemas/Decimal"
+                        example: "2.3"
+                      price:
+                        allOf:
+                          - $ref: "#/components/schemas/Decimal"
+                        example: "9412.22"
+      responses:
+        "200":
+          description: Edit batch orders for a contract.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref:   "#/components/schemas/Order"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+      summary: Edit batch orders
+      tags:
+        - Trading
+
+
+  /account/edit_bulk_orders:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bulk_orders
+              properties:
+                bulk_orders:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - order_id
+                    properties:
+                      order_id:
+                        allOf:
+                          - $ref: "#/components/schemas/UUID"
+                      client_order_id:
+                        allOf:
+                          - $ref: "#/components/schemas/ClientOrderId"
+                      size:
+                        allOf:
+                          - $ref: "#/components/schemas/Decimal"
+                        example: "2.3"
+                      price:
+                        allOf:
+                          - $ref: "#/components/schemas/Decimal"
+                        example: "9412.22"
+      responses:
+        "200":
+          description: Edit bulk orders for a contract.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref:   "#/components/schemas/Order"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+      summary: Edit bulk orders
+      tags:
+        - Trading
+
   /account/get_open_orders:
     get:
       parameters:
-        - name: asset
-          description: The asset symbol, exactly one of `asset` or `contract_symbol`
+        - name: contract_symbol
+          description: Contract unique symbol
           explode: true
           in: query
           required: false
-          style: form
-          schema:
-            allOf:
-              - $ref: "#/components/schemas/AssetSymbol"
-        - name: contract_symbol
-          description: Contract unique symbol, exactly one of `asset` or `contract_symbol`
-          explode: true
-          in: query
-          required: true
           schema:
             allOf:
               - $ref: "#/components/schemas/ContractSymbol"
@@ -474,18 +579,18 @@ paths:
             allOf:
               - $ref: "#/components/schemas/OrderType"
           style: form
-        - $ref: "#/components/parameters/pageSizeParam"
-        - $ref: "#/components/parameters/currentPageParam"
+        - $ref: "#/components/parameters/ToParam"
+        - $ref: "#/components/parameters/FromParam"
       responses:
         "200":
           description: A list of orders
           headers:
-            X-Pagination-Current-Page:
-              $ref: "#/components/headers/X-Pagination-Current-Page"
-            X-Pagination-Page-Size:
-              $ref: "#/components/headers/X-Pagination-Page-Size"
-            X-Pagination-Total-Count:
-              $ref: "#/components/headers/X-Pagination-Total-Count"
+            X-Pagination-To:
+              $ref: "#/components/headers/X-Pagination-To"
+            X-Pagination-From:
+              $ref: "#/components/headers/X-Pagination-From"
+            X-Pagination-Has-More:
+              $ref: "#/components/headers/X-Pagination-Has-More"
           content:
             application/json:
               schema:
@@ -495,6 +600,7 @@ paths:
       summary: Get open orders
       tags:
         - Trading
+
   /account/cancel_order:
     post:
       requestBody:
@@ -524,6 +630,7 @@ paths:
       summary: Cancel order
       tags:
         - Trading
+
   /account/cancel_batch_orders:
     post:
       requestBody:
@@ -544,8 +651,6 @@ paths:
                       order_id:
                         allOf:
                           - $ref: "#/components/schemas/UUID"
-
-
       responses:
         "200":
           description: Cancel batch orders, specified by order ids.
@@ -565,6 +670,7 @@ paths:
       summary:  Cancel batch orders
       tags:
         - Trading
+
   /account/cancel_all_open_orders:
     post:
       requestBody:
@@ -575,42 +681,45 @@ paths:
               required:
                 - contract_symbol
               properties:
-                asset:
-                  description: The asset symbol, exactly one of `asset` or `contract_symbol`
-                  allOf:
-                    - $ref: "#/components/schemas/AssetSymbol"
                 contract_symbol:
-                  description: Contract unique symbol, exactly one of `asset` or `contract_symbol`
+                  description: Contract unique symbol
                   allOf:
                     - $ref: "#/components/schemas/ContractSymbol"
-                contract_type:
-                  allOf:
-                    - $ref: "#/components/schemas/ContractType"
       responses:
         "200":
-          description: A cancellation response
+          description: Canceled order ids.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref:   "#/components/schemas/UUID"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
       summary: Cancel all open orders
       tags:
         - Trading
+
   /account/get_positions:
     get:
       parameters:
-        - name: asset
-          description: The asset symbol, exactly one of `asset` or `contract_symbol`
-          explode: true
-          in: query
-          required: false
-          style: form
-          schema:
-            allOf:
-              - $ref: "#/components/schemas/AssetSymbol"
-        - name: contract_symbol
-          description: Contract unique symbol, exactly one of `asset` or `contract_symbol`
+        - name: account_type
+          description: The account type
           explode: true
           in: query
           required: true
+          style: form
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/AccountType"
+        - name: contract_symbol
+          description: Contract unique symbol
+          explode: true
+          in: query
+          required: false
           schema:
             allOf:
               - $ref: "#/components/schemas/ContractSymbol"
@@ -624,9 +733,14 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Position"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
       summary: Get positions
       tags:
         - Trading
+
   /account/close_position:
     post:
       requestBody:
@@ -650,9 +764,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Position"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
       summary: Close position
       tags:
         - Trading
+
+  /account/close_all_positions:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - account_type
+              properties:
+                contract_type:
+                  allOf:
+                    - $ref: "#/components/schemas/ContractType"
+                account_type:
+                  allOf:
+                    - $ref: "#/components/schemas/AccountType"
+      responses:
+        "200":
+            $ref: "#/components/responses/Success"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+      summary: Close all positions
+      tags:
+        - Trading
+
   /account/get_user_trades:
     get:
       parameters:
@@ -673,8 +819,8 @@ paths:
           style: form
           schema:
             $ref: "#/components/schemas/UUID"
-        - $ref: "#/components/parameters/pageSizeParam"
-        - $ref: "#/components/parameters/currentPageParam"
+        - $ref: "#/components/parameters/ToParam"
+        - $ref: "#/components/parameters/FromParam"
       responses:
         "200":
           description: A list of trades
@@ -684,9 +830,14 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/UserTrade"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
       summary: Get user trades
       tags:
         - Trading
+
   /account/get_order_history:
     get:
       parameters:
@@ -694,7 +845,7 @@ paths:
           description: Contract symbol
           explode: true
           in: query
-          required: true
+          required: false
           schema:
             $ref: "#/components/schemas/ContractSymbol"
           style: form
@@ -707,18 +858,18 @@ paths:
             allOf:
               - $ref: "#/components/schemas/ContractType"
           style: form
-        - $ref: "#/components/parameters/pageSizeParam"
-        - $ref: "#/components/parameters/currentPageParam"
+        - $ref: "#/components/parameters/ToParam"
+        - $ref: "#/components/parameters/FromParam"
       responses:
         "200":
           description: A list of orders
           headers:
-            X-Pagination-Current-Page:
-              $ref: "#/components/headers/X-Pagination-Current-Page"
-            X-Pagination-Page-Size:
-              $ref: "#/components/headers/X-Pagination-Page-Size"
-            X-Pagination-Total-Count:
-              $ref: "#/components/headers/X-Pagination-Total-Count"
+            X-Pagination-To:
+              $ref: "#/components/headers/X-Pagination-To"
+            X-Pagination-From:
+              $ref: "#/components/headers/X-Pagination-From"
+            X-Pagination-Has-More:
+              $ref: "#/components/headers/X-Pagination-Has-More"
           content:
             application/json:
               schema:
@@ -728,42 +879,74 @@ paths:
       summary: Order history
       tags:
         - Trading
+
+  /account/get_order_status:
+    get:
+      parameters:
+        - name: client_order_id
+          description: Client order identificator
+          explode: true
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/UUID"
+          style: form
+        - name: order_id
+          description: Unique order identificator
+          explode: true
+          in: query
+          required: false
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/UUID"
+          style: form
+      responses:
+        "200":
+          description: An order response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+      summary: Order status
+      tags:
+        - Trading
+
+
 components:
   headers:
-    X-Pagination-Current-Page:
+    X-Pagination-To:
       schema:
         type: integer
-      description: Current page of pagination
-    X-Pagination-Page-Size:
+      description: max timestamp in response
+    X-Pagination-From:
       schema:
         type: integer
-      description: Current page size
-    X-Pagination-Total-Count:
+      description: min timestamp in response
+    X-Pagination-Has-More:
       schema:
-        type: integer
-      description: Total count of itmes
+        type: boolean
+      description: has more before from
 
   parameters:
-    currentPageParam:
-      name: current_page
+    FromParam:
+      name: from
       in: query
-      description: Limits the number of returned results
+      description: From Timestamp
       required: false
       schema:
         type: integer
         minimum: 1
         default: 1
         format: int32
-    pageSizeParam:
-      name: page_size
+    ToParam:
+      name: to
       in: query
-      description: Size of page
+      description: To Timestamp
       required: false
       schema:
         type: integer
-        minimum: 10
-        default: 10
-        multipleOf: 10
+        minimum: 1
+        default: 1
         format: int32
 
   securitySchemes:
@@ -832,6 +1015,11 @@ components:
       example: d25c9454-b488-11ea-b3de-0242ac130004
       description: Unique identifier
 
+    ClientOrderId:
+      type: string
+      example: d25c9454-b488-11ea-b3de-0242ac130004
+      description: identifier
+
     Decimal:
       type: string
       example: "10.000"
@@ -881,8 +1069,11 @@ components:
     ContractType:
       type: string
       enum:
-        - future
-        - perpetual
+        - futures
+        - perpetual_futures
+        - spread_futures
+        - options
+        - spots
       description: Type of contract
       example: future
 
@@ -915,10 +1106,10 @@ components:
     StopOrderType:
       type: string
       enum:
-        - stop_limit
-        - stop_market
+        - stop_loss
+        - take_profit
       description: Type of stop order
-      example: stop_limit
+      example: stop_loss
 
     StopOrderTrigger:
       type: string
@@ -936,6 +1127,23 @@ components:
         - fill_or_kill
         - immediate_or_cancel
       example: good_til_cancelled
+
+    TimeInForceResp:
+      type: string
+      enum:
+        - gtc
+        - fok
+        - ioc
+      example: gtc
+
+    AccountType:
+      type: string
+      enum:
+        - futures
+        - spots
+        - options
+      description: Type of account
+      example: futures
 
     Ohlc:
       type: object
@@ -975,16 +1183,17 @@ components:
         size:
           allOf:
             - $ref: "#/components/schemas/Decimal"
-          example: "779"
+          example: "779.34"
+        total_size:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "8734.84"
 
     Asset:
       type: object
       properties:
         symbol:
           $ref: "#/components/schemas/AssetSymbol"
-        name:
-          example: Ethereum
-          type: string
         precision:
           example: 8
           type: number
@@ -1008,6 +1217,10 @@ components:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           example: "0.5"
+        contract_size:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "0.5"
         impact_size:
           allOf:
             - $ref: "#/components/schemas/Decimal"
@@ -1022,10 +1235,38 @@ components:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           example: "0.02"
+        default_leverage:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "0.01"
+        maker_comission_rate:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "0.02"
+        taker_comission_rate:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "0.05"
+        max_leverage_notional:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "0.02"
+        volatility_threshold:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "0.0002"
         position_size_limit:
           allOf:
             - $ref: "#/components/schemas/Decimal"
-          example: 1000
+          example: "1000.00"
+        auction_start_time:
+          type: string
+          format: date-time
+          description: Auction start time
+        auction_finish_time:
+          type: string
+          format: date-time
+          description: Auction finish time
         settlement_time:
           type: string
           format: date-time
@@ -1070,6 +1311,30 @@ components:
     Ticker:
       type: object
       properties:
+        current_funding_rate:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "0.002"
+        index_price:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "9100.00"
+        last_price:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "9000.00"
+        mark_price:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "9050.00"
+        predictive_funding_rate:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "0.002"
+        premium_index:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "0.002"
         open:
           allOf:
             - $ref: "#/components/schemas/Decimal"
@@ -1085,10 +1350,15 @@ components:
         size:
           allOf:
             - $ref: "#/components/schemas/Decimal"
+
+        next_funding_time:
+          allOf:
+            - $ref: "#/components/schemas/Timestamp"
+          description: Next funding time
         timestamp:
-          type: number
+          allOf:
+            - $ref: "#/components/schemas/Timestamp"
           description: Trade timestamp
-          example: 1592828815073
     Orderbook:
       type: object
       properties:
@@ -1125,6 +1395,13 @@ components:
     UserTrade:
       type: object
       properties:
+        contract_id:
+          allOf:
+            - $ref: "#/components/schemas/UUID"
+        contract_symbol:
+          allOf:
+            - $ref: "#/components/schemas/ContractSymbol"
+
         side:
           allOf:
             - $ref: "#/components/schemas/Side"
@@ -1149,24 +1426,59 @@ components:
           allOf:
             - $ref: "#/components/schemas/UUID"
           description: Unique order identifier
+        timestamp:
+          allOf:
+            - $ref: "#/components/schemas/Timestamp"
+
     Position:
       type: object
       properties:
+        contract_id:
+          allOf:
+            - $ref: "#/components/schemas/UUID"
+        contract_symbol:
+          allOf:
+            - $ref: "#/components/schemas/ContractSymbol"
+        mark_price:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Mark price
+        liquidation_price:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Liquidation price
         price:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           description: Position entry price
+        roe:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: ROE
         size:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           description: Position size, negative for short and positive for long
-        margin:
+        unrealized_pnl:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description:  Unrealized profit and loss
+        initial_margin:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          description: Initial margin
+        position_margin:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           description: Position margin
-        contract:
+        open_order_margin:
           allOf:
-            - $ref: "#/components/schemas/Contract"
+            - $ref: "#/components/schemas/Decimal"
+          description: Open order margin
+        last_update_timestamp:
+          allOf:
+            - $ref: "#/components/schemas/Timestamp"
+          description: Last update timestamp
     Order:
       type: object
       properties:
@@ -1174,6 +1486,10 @@ components:
           allOf:
             - $ref: "#/components/schemas/UUID"
           description: Unique order identifier
+        client_order_id:
+          allOf:
+            - $ref: "#/components/schemas/UUID"
+          description: Client order identifier
         type:
           allOf:
             - $ref: "#/components/schemas/OrderType"
@@ -1187,6 +1503,10 @@ components:
           allOf:
             - $ref: "#/components/schemas/Decimal"
           example: "7891.33"
+        average_fill_price:
+          allOf:
+            - $ref: "#/components/schemas/Decimal"
+          example: "10173.82"
         stop_price:
           allOf:
             - $ref: "#/components/schemas/Decimal"
@@ -1205,15 +1525,46 @@ components:
           example: "0.12"
         time_in_force:
           allOf:
-            - $ref: "#/components/schemas/TimeInForce"
-        contract:
-          type: object
-          properties:
-            symbol:
-              allOf:
-                - $ref: "#/components/schemas/ContractSymbol"
+            - $ref: "#/components/schemas/TimeInForceResp"
+        is_post_only:
+          type: boolean
+          default: false
+        is_reduce_only:
+          type: boolean
+          default: false
+        stop_order_type:
+          allOf:
+            - $ref: "#/components/schemas/StopOrderType"
+        stop_trigger:
+          allOf:
+            - $ref: "#/components/schemas/StopOrderTrigger"
+        contract_id:
+          allOf:
+            - $ref: "#/components/schemas/UUID"
+        contract_symbol:
+          allOf:
+            - $ref: "#/components/schemas/ContractSymbol"
+        creation_timestamp:
+          allOf:
+            - $ref: "#/components/schemas/Timestamp"
+        last_update_timestamp:
+          allOf:
+            - $ref: "#/components/schemas/Timestamp"
 
   responses:
+    Success:
+      description: Success response
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - status
+            properties:
+              status:
+                type: string
+                enum: [success]
+
     NotFound:
       description: Resource could not be found
       content:
